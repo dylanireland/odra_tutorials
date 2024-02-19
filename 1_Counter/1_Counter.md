@@ -80,7 +80,7 @@ Create a new Odra project by opening a terminal and running:
 cargo odra new --name counter -t blank
 ```
 
-The `-t blank` flag will create the contract as a blank template.
+*Note: The `-t blank` flag will create the contract as a blank template.*
 
 Opening *counter/src/lib.rs* will display a blank file. [// n otherwise blank file with the `#![no_std]` macro on the first line.]
 
