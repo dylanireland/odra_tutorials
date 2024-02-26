@@ -130,7 +130,7 @@ The only parameter (besides a mutable reference to `self`) is `candidate`, which
 Start off the function by checking if the current block time is greater than `end_block`. If it is, revert with the error `VotingEnded`:
 
 ```rust
-if self.env().get_block_time() > self.end_block {
+if self.env().get_block_time() > self.end_block.get_or_default() {
 	self.env().revert(Error::VotingEnded);
 }
 ```
@@ -144,35 +144,36 @@ let caller: Address = self.env().caller();
 Now prepare a `match` expression to get the dictionary value at the key `caller`:
 
 ```rust
-match self.voters.get(caller) {
-	Ok(Some(_)) => self.env().revert(Error::VoterAlreadyVoted),
-	Ok(None) => {},
-	Err(_) => self.env().revert(Error::ProbablyBecauseTheValueIsEmpty)
+match self.voters.get(&caller) {
+	Some(_) => self.env().revert(Error::VoterAlreadyVoted),
+	None => {}
 }
 ```
 
 In this case, if a value exists, then it is known that the account has already voted, and execution can be reverted with `VoterAlreadyVoted`.
 If no value exists, execution may continue.
-If an error occurs, revert with `UnknownError`. ***Fix this***
 
 Assuming execution isn't reverted due to the result of the `match` expression, the only thing left to do is record the user's vote and register them in `voters` as having voted.
 
-Start by getting the selected candidate's current vote count:
+Start by getting the selected candidate's current vote count, reverting if the candidate doesn't exist:
 
 ```rust
-let candidate_vote_count: u32 = self.candidate_votes.get_or_default(&candidate);
+let candidate_vote_count: u32 = self
+	.candidate_votes
+	.get(&candidate)
+	.unwrap_or_revert_with(&self.env(), Error::CandidateDoesntExist);
 ```
 
 Then write this value, plus 1, to `candidate_votes`:
 
 ```rust
-self.candidate_votes.set(&candidate, candidate_vote_count + 1u32);
+self.candidate_votes.set(&candidate, candidate_vote_count + 1);
 ```
 
 Finally, add the calling account's `Address` to `voters` to restrict the user from voting again:
 
 ```rust
-self.voters.set(caller, true)
+self.voters.set(&caller, true)
 ```
 
 ### `get_candidate_votes` Entrypoint
